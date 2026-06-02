@@ -2,6 +2,7 @@
 
 - Priority: High
 - Created: 2026-06-02
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-outbound-stanzas
 
@@ -31,4 +32,7 @@
 
 ## 解決方法
 
-(完了時に記載)
+- `protocol/stanza.go`: `MessageStanzaBytes`, `PresenceStanzaBytes`, `IQStanzaBytes`
+- `protocol/xmltext.go`: `escapeXMLText` (message body の XML エスケープ)
+- `protocol/conn.go`: `SendMessage`, `SendPresence`, `SendIQ`, `sendStanza`
+- `protocol/stanza_test.go`, `conn_test.go` の conformance / Connection 経由テスト

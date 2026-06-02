@@ -188,6 +188,44 @@ func (c *Connection) BindResource(resource string) error {
 	return nil
 }
 
+func (c *Connection) sendStanza(data []byte) error {
+	if c.state != StateReady {
+		return fmt.Errorf("protocol: send stanza in state %s", c.state)
+	}
+	if c.boundJID.IsEmpty() {
+		return errors.New("protocol: bound JID required to send stanza")
+	}
+	c.enqueue(data)
+	return nil
+}
+
+// SendMessage は RFC 6121 形式の <message/> を送信キューに載せる。
+func (c *Connection) SendMessage(to jid.JID, id, typ, lang, body string) error {
+	data, err := MessageStanzaBytes(c.boundJID, to, id, typ, lang, body)
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
+// SendPresence は <presence/> を送信キューに載せる。
+func (c *Connection) SendPresence(to jid.JID, id, typ string) error {
+	data, err := PresenceStanzaBytes(c.boundJID, to, id, typ)
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
+// SendIQ は <iq/> を送信キューに載せる。
+func (c *Connection) SendIQ(to jid.JID, id, typ string, inner []byte) error {
+	data, err := IQStanzaBytes(c.boundJID, to, id, typ, inner)
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
 // BytesToSend は送信キュー先頭のバイト列を取り出す。なければ nil。
 func (c *Connection) BytesToSend() []byte {
 	if len(c.out) == 0 {

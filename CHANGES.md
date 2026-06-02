@@ -12,6 +12,8 @@
   - @okonomipizza
 - [ADD] resource binding (`Bind`, `BindResource`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] outbound stanza 送信 (`SendMessage`, `SendPresence`, `SendIQ`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 
