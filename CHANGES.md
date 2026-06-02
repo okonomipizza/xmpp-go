@@ -2,6 +2,11 @@
 
 ## develop
 
+- [ADD] 増分 XML パーサー `xmlstream` パッケージを追加する
+  - @okonomipizza
+- [ADD] c2s 向け Sans I/O 状態機械 `protocol` パッケージを追加する
+  - @okonomipizza
+
 ### misc
 
 - [ADD] 変更履歴ファイル `CHANGES.md` を追加する
