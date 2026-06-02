@@ -2,10 +2,9 @@
 
 - Priority: High
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-initial-available-presence
-- Polished:
 
 ## 目的
 
@@ -36,6 +35,7 @@ High — ログイン完了後の定番フロー。既存 `SendPresence` は dir
 
 ## 解決方法
 
-- `protocol/stanza.go`: `AvailablePresenceOpts`, `AvailablePresenceStanzaBytes`
+- `protocol/stanza.go`: `AvailablePresenceOpts`, `AvailablePresenceStanzaBytes`, `validatePresenceShow` / `validatePresencePriority`
 - `protocol/conn.go`: `SendAvailablePresence`
-- `protocol/stanza_test.go`, `conn_test.go` にテスト追加
+- 属性は `validateStanzaAttr` (`&` 含む)、`<status>` は `escapeXMLText` のみ
+- `protocol/stanza_test.go` (RFC 6121 Example 3/10 等)
