@@ -245,6 +245,24 @@ func (c *Connection) SendRosterGet(id string) error {
 	return c.sendStanza(data)
 }
 
+// SendRosterSet は roster set IQ を送信キューに載せる (RFC 6121 Section 2.3 / 2.4)。
+func (c *Connection) SendRosterSet(id string, item RosterSetItem) error {
+	data, err := RosterIQSetBytes(c.boundJID, id, item)
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
+// SendRosterRemove は roster から連絡先を削除する set IQ を送信キューに載せる (RFC 6121 Section 2.5)。
+func (c *Connection) SendRosterRemove(id string, contact jid.JID) error {
+	data, err := RosterIQSetBytes(c.boundJID, id, RosterSetItem{JID: contact, Subscription: "remove"})
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
 // SendIQ は <iq/> を送信キューに載せる。
 func (c *Connection) SendIQ(to jid.JID, id, typ string, inner []byte) error {
 	data, err := IQStanzaBytes(c.boundJID, to, id, typ, inner)

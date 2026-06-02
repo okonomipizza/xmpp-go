@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"testing"
+	"time"
 
 	"github.com/okonomipizza/xmpp-go/xmlstream"
 )
@@ -128,6 +129,21 @@ func TestParseDirectChildElements_MismatchedClose(t *testing.T) {
 func TestParseDirectChildElements_IncompleteOpen(t *testing.T) {
 	if children := parseDirectChildElements([]byte(`<outer><inner`)); len(children) != 0 {
 		t.Fatalf("children = %+v", children)
+	}
+}
+
+func TestParseDirectChildElements_UnclosedChildTerminates(t *testing.T) {
+	// FuzzRosterParsing corpus af57aafd0ebe4fef: must not hang on malformed child close tags
+	raw := []byte(`<query ''><''></query>`)
+	done := make(chan struct{})
+	go func() {
+		_ = parseDirectChildElements(raw)
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("parseDirectChildElements hung")
 	}
 }
 

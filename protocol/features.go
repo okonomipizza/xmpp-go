@@ -65,7 +65,8 @@ func parseDirectChildElements(elemRaw []byte) []featureChild {
 			if j := bytes.IndexByte(inner[i:], '>'); j >= 0 {
 				i += j + 1
 			} else {
-				break
+				// 不完全な閉じタグ (例: </query) で i が進まないのを防ぐ
+				i = len(inner)
 			}
 			continue
 		}
@@ -88,6 +89,7 @@ func parseDirectChildElements(elemRaw []byte) []featureChild {
 		names := []string{name}
 		j := openEnd + 1
 		for depth > 0 && j < len(inner) {
+			prevJ := j
 			k := bytes.IndexByte(inner[j:], '<')
 			if k < 0 {
 				break
@@ -105,7 +107,8 @@ func parseDirectChildElements(elemRaw []byte) []featureChild {
 				closeEnd += j
 				closeName := closeTagLocalName(inner[j : closeEnd+1])
 				if closeName != names[depth-1] {
-					return out
+					j = closeEnd + 1
+					continue
 				}
 				depth--
 				names = names[:depth]
@@ -130,6 +133,14 @@ func parseDirectChildElements(elemRaw []byte) []featureChild {
 					j = nestedEnd + 1
 				}
 			}
+			if j <= prevJ {
+				j++
+			}
+		}
+		if depth > 0 {
+			// 閉じタグがない不正要素はスキップして進める (無限ループ防止)
+			i = openEnd + 1
+			continue
 		}
 	}
 	return out

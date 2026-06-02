@@ -30,6 +30,10 @@
   - @okonomipizza
 - [ADD] roster get 送信と受信パース (`SendRosterGet`, `ParseRosterItems`, `RosterItem`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] roster set / remove 送信 (`SendRosterSet`, `SendRosterRemove`, `RosterSetItemBytes`) と push 受信 (`ParseRosterPush`, `ErrRosterPushIgnored`) を `protocol` に追加する
+  - @okonomipizza
+- [FIX] `parseDirectChildElements` の不正 XML による無限ループ (DoS) を `protocol` で修正する
+  - @okonomipizza
 
 ### misc
 

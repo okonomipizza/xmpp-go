@@ -19,3 +19,15 @@ func FuzzConnectionReceive(f *testing.F) {
 		_, _ = conn.Receive(data)
 	})
 }
+
+func FuzzRosterParsing(f *testing.F) {
+	account, _ := jid.Parse("user@example.com")
+	f.Add([]byte(`<query xmlns='jabber:iq:roster'><item jid='a@example.com'/></query>`))
+	f.Add([]byte(`<query xmlns='jabber:iq:roster'><item jid='juliet@example.com' subscription='none' ask='subscribe'/></query>`))
+	f.Add([]byte(`<wrapper><query xmlns='jabber:iq:roster'><item jid='a@example.com' subscription='bogus'/></query></wrapper>`))
+
+	f.Fuzz(func(t *testing.T, data []byte) {
+		_, _ = ParseRosterItems(data)
+		_, _ = ParseRosterPush(IQEvent{Type: "set", Payload: data}, account)
+	})
+}

@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("<wrapper><query xmlns='jabber:iq:roster'><='a@example.com' ''/></query</wrapper>")

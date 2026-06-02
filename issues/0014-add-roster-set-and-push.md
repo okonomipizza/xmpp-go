@@ -2,7 +2,7 @@
 
 - Priority: High
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-roster-set-and-push
 - Polished:
@@ -23,10 +23,10 @@ High — 0013 (presence 購読) とセットで 6121 の連絡先管理の芯。
 
 ## 設計方針
 
-- `RosterSetItemBytes` で `<item/>` を組み立て (`jid`, `name`, `subscription`, `ask`, `group`)
-- `RosterIQSetBytes(from, id, items [][]byte)` / `Connection.SendRosterSet`
+- `RosterSetItemBytes` / `RosterQuerySetBytes` で `<item/>` を組み立て (`jid`, `name`, `subscription`, `group`; outbound に `ask` は含めない)
+- `RosterIQSetBytes(from, id, RosterSetItem)` / `Connection.SendRosterSet` (item は 1 件のみ、RFC 2.1.5)
 - remove は `subscription='remove'` の item 1 件 (RFC 2.1.6)
-- push 受信は既存 `ParseRosterItems(ev.Payload)` をドキュメント・テストで明示 (専用型は不要)
+- push 受信は `ParseRosterPush` (`from` 検証・item 1 件、RFC 2.1.6)
 
 ## 完了条件
 
@@ -37,7 +37,7 @@ High — 0013 (presence 購読) とセットで 6121 の連絡先管理の芯。
 
 ## 解決方法
 
-- `protocol/roster.go` 拡張: `RosterSetItemBytes`, `RosterIQSetBytes`, `SendRosterSet`, `SendRosterRemove`
+- `protocol/roster.go` 拡張: `RosterSetItemBytes`, `RosterIQSetBytes`, `SendRosterSet`, `SendRosterRemove`, `ParseRosterPush`
 - `protocol/roster_test.go` 追加
 
 ## 依存
