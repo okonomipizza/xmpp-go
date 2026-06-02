@@ -2,10 +2,9 @@
 
 - Priority: High
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-inbound-presence-parse
-- Polished:
 
 ## 目的
 
@@ -36,6 +35,6 @@ High — 0008 (初期 presence 送信) の対。連絡先の online / away / pro
 
 ## 解決方法
 
-- `protocol/presence.go`: `PresenceEvent`, `ParseInboundPresence`
-- `protocol/conn.go`: presence 分岐を更新
-- `protocol/presence_test.go`, `conn_test.go` 更新
+- `protocol/presence.go`: `PresenceEvent`, `ParseInboundPresence`, `presenceChildText`, `presencePriority`
+- `protocol/conn.go`: presence 受信で `PresenceEvent` を返す
+- `protocol/presence_test.go` (RFC 6121 Example 11 等), `conn_test.go` 更新
