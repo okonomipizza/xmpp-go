@@ -2,10 +2,9 @@
 
 - Priority: High
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-roster
-- Polished:
 
 ## 目的
 
@@ -35,7 +34,7 @@ High — IM クライアントの定番フロー (Example 1 / 2)。0010 の `IQE
 
 ## 解決方法
 
-- `protocol/roster.go`: 送信バイト列と `ParseRosterItems`
+- `protocol/roster.go`: `RosterIQGetBytes`, `ParseRosterItems`, `RosterItem`
 - `protocol/features.go`: `elementAttrValue`
 - `protocol/conn.go`: `SendRosterGet`
-- `protocol/roster_test.go`
+- `protocol/roster_test.go` (`elementAttrValue` テスト含む)
