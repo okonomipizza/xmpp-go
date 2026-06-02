@@ -109,9 +109,9 @@ func TestConnection_StanzaAfterReady(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("events = %d", len(events))
 	}
-	st, ok := events[0].(*StanzaEvent)
-	if !ok || st.Name != "message" {
-		t.Fatalf("event %T", events[0])
+	me, ok := events[0].(*MessageEvent)
+	if !ok || me.Body != "hi" {
+		t.Fatalf("event %T body=%q", events[0], me.Body)
 	}
 }
 
@@ -220,9 +220,9 @@ func TestConnection_Close(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("events = %d", len(events))
 	}
-	st, ok := events[0].(*StanzaEvent)
-	if !ok || st.Name != "message" {
-		t.Fatalf("got %T", events[0])
+	me, ok := events[0].(*MessageEvent)
+	if !ok || me.Body != "late" {
+		t.Fatalf("got %T body=%q", events[0], me.Body)
 	}
 	if conn.State() != StateClosing {
 		t.Fatalf("state = %s", conn.State())

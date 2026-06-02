@@ -16,6 +16,8 @@
   - @okonomipizza
 - [ADD] ストリーム終了送信 (`Close`, `StreamCloseBytes`, `StateClosing`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] 受信 message の構造化 (`MessageEvent`, `ParseInboundMessage`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

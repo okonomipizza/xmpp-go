@@ -37,3 +37,49 @@ func escapeXMLText(s string) string {
 	}
 	return b.String()
 }
+
+// unescapeXMLText は XML テキストノード内の定義済みエンティティを復元する。
+func unescapeXMLText(s string) string {
+	if !strings.Contains(s, "&") {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	i := 0
+	for i < len(s) {
+		if s[i] != '&' {
+			b.WriteByte(s[i])
+			i++
+			continue
+		}
+		semicolon := strings.IndexByte(s[i:], ';')
+		if semicolon < 0 {
+			b.WriteByte(s[i])
+			i++
+			continue
+		}
+		entity := s[i : i+semicolon+1]
+		var repl string
+		var ok bool
+		switch entity {
+		case "&amp;":
+			repl, ok = "&", true
+		case "&lt;":
+			repl, ok = "<", true
+		case "&gt;":
+			repl, ok = ">", true
+		case "&apos;":
+			repl, ok = "'", true
+		case "&quot;":
+			repl, ok = "\"", true
+		}
+		if ok {
+			b.WriteString(repl)
+			i += len(entity)
+			continue
+		}
+		b.WriteByte(s[i])
+		i++
+	}
+	return b.String()
+}

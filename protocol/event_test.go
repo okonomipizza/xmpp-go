@@ -12,6 +12,7 @@ func TestEventMarkers(t *testing.T) {
 	(&SASLFailureEvent{}).isEvent()
 	(&BindSuccessEvent{}).isEvent()
 	(&BindFailureEvent{}).isEvent()
+	(&MessageEvent{}).isEvent()
 	(&StanzaEvent{}).isEvent()
 	(&ElementEvent{}).isEvent()
 	(&StreamClosedEvent{}).isEvent()
