@@ -188,6 +188,92 @@ func TestConnection_StreamClose(t *testing.T) {
 	}
 }
 
+func TestConnection_Close(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	conn.SetReady()
+
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if conn.State() != StateClosing {
+		t.Fatalf("state = %s", conn.State())
+	}
+	data := conn.BytesToSend()
+	if string(data) != "</stream:stream>" {
+		t.Fatalf("close bytes = %q", data)
+	}
+	if err := conn.SendMessage(jid.JID{}, "1", "chat", "", "hi"); err == nil {
+		t.Fatal("expected error sending after Close")
+	}
+	if err := conn.Close(); err == nil {
+		t.Fatal("expected error on second Close")
+	}
+
+	events, err := conn.Receive([]byte("<message from='a@example.com' to='user@example.com'><body>late</body></message>"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("events = %d", len(events))
+	}
+	st, ok := events[0].(*StanzaEvent)
+	if !ok || st.Name != "message" {
+		t.Fatalf("got %T", events[0])
+	}
+	if conn.State() != StateClosing {
+		t.Fatalf("state = %s", conn.State())
+	}
+
+	events, err = conn.Receive([]byte("</stream:stream>"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("events = %d", len(events))
+	}
+	if _, ok := events[0].(*StreamClosedEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+	if conn.State() != StateClosed {
+		t.Fatalf("state = %s", conn.State())
+	}
+	_, err = conn.Receive([]byte("<message/>"))
+	if err == nil {
+		t.Fatal("expected error after close")
+	}
+}
+
+func TestConnection_CloseBeforeStart(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	if err := conn.Close(); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_CloseWhileNegotiating(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	_, _ = conn.Receive([]byte(featuresTLS))
+
+	if err := conn.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if conn.State() != StateClosing {
+		t.Fatalf("state = %s", conn.State())
+	}
+	if string(conn.BytesToSend()) != "</stream:stream>" {
+		t.Fatal("expected stream close bytes")
+	}
+}
+
 func TestConnection_StreamRestartInNegotiating(t *testing.T) {
 	j, _ := jid.Parse("user@example.com")
 	conn := NewConnection(Config{JID: j})

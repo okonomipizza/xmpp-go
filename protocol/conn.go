@@ -226,6 +226,22 @@ func (c *Connection) SendIQ(to jid.JID, id, typ string, inner []byte) error {
 	return c.sendStanza(data)
 }
 
+// Close は RFC 6120 Section 4.4 の </stream:stream> を送信キューに載せる。
+// 呼び出し後は outbound を送らず、サーバーからの close を Receive で処理する。
+func (c *Connection) Close() error {
+	switch c.state {
+	case StateInitial:
+		return errors.New("protocol: Close before Start")
+	case StateClosed:
+		return errors.New("protocol: connection closed")
+	case StateClosing:
+		return errors.New("protocol: stream close already sent")
+	}
+	c.enqueue(StreamCloseBytes())
+	c.state = StateClosing
+	return nil
+}
+
 // BytesToSend は送信キュー先頭のバイト列を取り出す。なければ nil。
 func (c *Connection) BytesToSend() []byte {
 	if len(c.out) == 0 {
@@ -331,7 +347,7 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 	case "iq":
 		return c.handleIQ(tok)
 	case "message", "presence":
-		if c.state == StateReady {
+		if c.state == StateReady || c.state == StateClosing {
 			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
 		}
 		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome || c.state == StateAwaitBind {
@@ -351,7 +367,7 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 
 func (c *Connection) handleIQ(tok xmlstream.Token) (Event, error) {
 	if c.state != StateAwaitBind {
-		if c.state == StateReady {
+		if c.state == StateReady || c.state == StateClosing {
 			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
 		}
 		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome {

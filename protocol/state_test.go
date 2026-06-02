@@ -15,6 +15,7 @@ func TestState_String(t *testing.T) {
 		{StateAwaitSASLOutcome, "AwaitSASLOutcome"},
 		{StateAwaitBind, "AwaitBind"},
 		{StateReady, "Ready"},
+		{StateClosing, "Closing"},
 		{StateClosed, "Closed"},
 		{State(99), "State(99)"},
 	}

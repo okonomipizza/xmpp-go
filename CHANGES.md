@@ -14,6 +14,8 @@
   - @okonomipizza
 - [ADD] outbound stanza 送信 (`SendMessage`, `SendPresence`, `SendIQ`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] ストリーム終了送信 (`Close`, `StreamCloseBytes`, `StateClosing`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

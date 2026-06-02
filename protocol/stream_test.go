@@ -64,3 +64,10 @@ func TestClientStreamOpenBytes_DefaultLang(t *testing.T) {
 		t.Fatal("expected default lang en")
 	}
 }
+
+func TestStreamCloseBytes_RFC6120(t *testing.T) {
+	got := string(StreamCloseBytes())
+	if got != "</stream:stream>" {
+		t.Fatalf("got %q", got)
+	}
+}

@@ -37,6 +37,11 @@ func ClientStreamOpenBytes(cfg Config) ([]byte, error) {
 	)), nil
 }
 
+// StreamCloseBytes は RFC 6120 Section 4.4 のストリーム終了タグを返す。
+func StreamCloseBytes() []byte {
+	return []byte("</stream:stream>")
+}
+
 // validateXMLLang は xml:lang 属性値に載せて安全な文字列か検証する。
 func validateXMLLang(lang string) error {
 	for i := 0; i < len(lang); i++ {

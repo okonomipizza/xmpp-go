@@ -22,6 +22,8 @@ const (
 	StateAwaitBind
 	// StateReady は stanza の送受信が可能な状態。
 	StateReady
+	// StateClosing はクライアントが </stream:stream> を送り、サーバー側 close 待ち。
+	StateClosing
 	// StateClosed はストリームが閉じられた状態。
 	StateClosed
 )
@@ -45,6 +47,8 @@ func (s State) String() string {
 		return "AwaitBind"
 	case StateReady:
 		return "Ready"
+	case StateClosing:
+		return "Closing"
 	case StateClosed:
 		return "Closed"
 	default:
