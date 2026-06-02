@@ -104,6 +104,54 @@ func (c *Connection) ResetAfterTLS() {
 	c.state = StateInitial
 }
 
+// Authenticate は SASL <auth/> を送信キューに載せる (RFC 6120 Section 6.4)。
+// mechanism が空なら Config の優先順と features の交差から選ぶ。PLAIN の初期応答を内蔵する。
+func (c *Connection) Authenticate(mechanism string) error {
+	if c.state != StateNegotiating {
+		return fmt.Errorf("protocol: Authenticate in state %s", c.state)
+	}
+	if len(c.features.Mechanisms) == 0 {
+		return errors.New("protocol: SASL not offered")
+	}
+	var err error
+	if mechanism == "" {
+		mechanism, err = c.selectMechanism()
+		if err != nil {
+			return err
+		}
+	}
+	if !c.features.hasMechanism(mechanism) {
+		return fmt.Errorf("protocol: mechanism %q not offered", mechanism)
+	}
+	initial, err := saslInitial(c.cfg, mechanism)
+	if err != nil {
+		return err
+	}
+	data, err := AuthElementBytes(mechanism, initial)
+	if err != nil {
+		return err
+	}
+	c.enqueue(data)
+	c.state = StateAwaitSASLOutcome
+	return nil
+}
+
+// SASLResponse は <response/> を送信キューに載せる。
+func (c *Connection) SASLResponse(payload []byte) error {
+	if c.state != StateAwaitSASLOutcome {
+		return fmt.Errorf("protocol: SASLResponse in state %s", c.state)
+	}
+	c.enqueue(ResponseElementBytes(payload))
+	return nil
+}
+
+// ResetAfterSASL は SASL 成功後に XML ストリーム状態をリセットする (Section 6.3.2)。
+func (c *Connection) ResetAfterSASL() {
+	c.parser.Reset()
+	c.features = StreamFeatures{}
+	c.state = StateInitial
+}
+
 // BytesToSend は送信キュー先頭のバイト列を取り出す。なければ nil。
 func (c *Connection) BytesToSend() []byte {
 	if len(c.out) == 0 {
@@ -182,15 +230,35 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 			c.state = StateClosed
 			return &StartTLSFailureEvent{Token: tok}, nil
 		}
+		if c.state == StateAwaitSASLOutcome && elementSASLNamespace(tok) {
+			c.state = StateNegotiating
+			return &SASLFailureEvent{Token: tok}, nil
+		}
 		if c.state == StateNegotiating {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("protocol: unexpected failure in state %s", c.state)
+	case "challenge":
+		if c.state == StateAwaitSASLOutcome && elementSASLNamespace(tok) {
+			return &SASLChallengeEvent{
+				Payload: elementTextContent(tok.Raw),
+				Token:   tok,
+			}, nil
+		}
+		return nil, fmt.Errorf("protocol: unexpected challenge in state %s", c.state)
+	case "success":
+		if c.state == StateAwaitSASLOutcome && elementSASLNamespace(tok) {
+			return &SASLSuccessEvent{
+				Payload: elementTextContent(tok.Raw),
+				Token:   tok,
+			}, nil
+		}
+		return nil, fmt.Errorf("protocol: unexpected success in state %s", c.state)
 	case "message", "presence", "iq":
 		if c.state == StateReady {
 			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
 		}
-		if c.state == StateNegotiating {
+		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("protocol: unexpected stanza %q in state %s", tok.Name, c.state)

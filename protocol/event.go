@@ -41,6 +41,30 @@ type StartTLSFailureEvent struct {
 
 func (*StartTLSFailureEvent) isEvent() {}
 
+// SASLChallengeEvent は <challenge/> を受信したことを表す。Payload は Base64 文字列。
+type SASLChallengeEvent struct {
+	Payload string
+	Token   xmlstream.Token
+}
+
+func (*SASLChallengeEvent) isEvent() {}
+
+// SASLSuccessEvent は <success/> を受信したことを表す。
+// transport は変更不要。ResetAfterSASL() の後に Start() すること。
+type SASLSuccessEvent struct {
+	Payload string
+	Token   xmlstream.Token
+}
+
+func (*SASLSuccessEvent) isEvent() {}
+
+// SASLFailureEvent は SASL <failure/> を受信したことを表す。
+type SASLFailureEvent struct {
+	Token xmlstream.Token
+}
+
+func (*SASLFailureEvent) isEvent() {}
+
 // StanzaEvent は <message/>, <presence/>, <iq/> のいずれかを受信したことを表す。
 type StanzaEvent struct {
 	Name  string // "message", "presence", "iq"

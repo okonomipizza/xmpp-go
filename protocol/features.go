@@ -12,6 +12,8 @@ const tlsNS = "urn:ietf:params:xml:ns:xmpp-tls"
 type StreamFeatures struct {
 	StartTLSOffered  bool
 	StartTLSRequired bool
+	Mechanisms       []string
+	BindOffered      bool
 }
 
 type featureChild struct {
@@ -31,6 +33,10 @@ func ParseStreamFeatures(tok xmlstream.Token) StreamFeatures {
 					f.StartTLSRequired = true
 				}
 			}
+		case "mechanisms":
+			f.Mechanisms = parseMechanisms(ch.raw)
+		case "bind":
+			f.BindOffered = true
 		}
 	}
 	return f
@@ -203,4 +209,14 @@ func skipNonElementMarkup(buf []byte, start int) int {
 		return start + i + 1
 	}
 	return len(buf)
+}
+
+func parseMechanisms(mechanismsRaw []byte) []string {
+	var out []string
+	for _, ch := range parseDirectChildElements(mechanismsRaw) {
+		if ch.name == "mechanism" {
+			out = append(out, elementTextContent(ch.raw))
+		}
+	}
+	return out
 }

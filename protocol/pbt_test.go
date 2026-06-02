@@ -48,7 +48,7 @@ func TestConnection_Property_StateIsKnown(t *testing.T) {
 
 		switch conn.State() {
 		case StateInitial, StateAwaitServerStream, StateAwaitFeatures,
-			StateNegotiating, StateAwaitTLSProceed, StateReady, StateClosed:
+			StateNegotiating, StateAwaitTLSProceed, StateAwaitSASLOutcome, StateReady, StateClosed:
 		default:
 			t.Fatalf("unknown state %s", conn.State())
 		}

@@ -18,6 +18,19 @@ func TestParseStreamFeatures_STARTTLSRequired(t *testing.T) {
 	}
 }
 
+func TestParseStreamFeatures_Mechanisms(t *testing.T) {
+	tok := xmlstream.Token{
+		Kind: xmlstream.KindElement,
+		Name: "stream:features",
+		Raw: []byte(`<stream:features><mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>` +
+			`<mechanism>PLAIN</mechanism><mechanism>SCRAM-SHA-1</mechanism></mechanisms></stream:features>`),
+	}
+	f := ParseStreamFeatures(tok)
+	if len(f.Mechanisms) != 2 || f.Mechanisms[0] != "PLAIN" {
+		t.Fatalf("mechanisms = %v", f.Mechanisms)
+	}
+}
+
 func TestParseStreamFeatures_NoFalsePositiveStartTLS(t *testing.T) {
 	tok := xmlstream.Token{
 		Kind: xmlstream.KindElement,
@@ -42,6 +55,9 @@ func TestParseStreamFeatures_NoTLS(t *testing.T) {
 	if f.StartTLSOffered {
 		t.Fatal("unexpected STARTTLS")
 	}
+	if !f.BindOffered {
+		t.Fatal("expected bind")
+	}
 }
 
 func TestParseDirectChildElements_nested(t *testing.T) {
@@ -56,7 +72,7 @@ func TestParseDirectChildElements_nested(t *testing.T) {
 func TestParseStreamFeatures_Malformed(t *testing.T) {
 	tok := xmlstream.Token{Kind: xmlstream.KindElement, Name: "stream:features", Raw: []byte("<stream:features>")}
 	f := ParseStreamFeatures(tok)
-	if f.StartTLSOffered {
+	if f.StartTLSOffered || f.BindOffered || len(f.Mechanisms) > 0 {
 		t.Fatalf("features = %+v", f)
 	}
 }
@@ -78,11 +94,11 @@ func TestParseStreamFeatures_WithComment(t *testing.T) {
 	tok := xmlstream.Token{
 		Kind: xmlstream.KindElement,
 		Name: "stream:features",
-		Raw: []byte(`<stream:features><!-- offer TLS -->` +
-			`<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/></stream:features>`),
+		Raw: []byte(`<stream:features><!-- offer bind -->` +
+			`<bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></stream:features>`),
 	}
 	f := ParseStreamFeatures(tok)
-	if !f.StartTLSOffered {
+	if !f.BindOffered {
 		t.Fatalf("features = %+v", f)
 	}
 }

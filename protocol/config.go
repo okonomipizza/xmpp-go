@@ -9,4 +9,10 @@ type Config struct {
 
 	// Lang はストリームのデフォルト言語 (xml:lang)。空なら "en"。
 	Lang string
+
+	// Password は SASL PLAIN 用パスワード。
+	Password string
+
+	// SASLMechanisms は優先する SASL メカニズム名の順序。空なら PLAIN のみ (内蔵初期応答があるもの)。
+	SASLMechanisms []string
 }

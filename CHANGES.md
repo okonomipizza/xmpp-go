@@ -8,6 +8,8 @@
   - @okonomipizza
 - [ADD] STARTTLS 交渉 (`StartTLS`, `ResetAfterTLS`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] SASL PLAIN 認証と challenge/response パスを `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

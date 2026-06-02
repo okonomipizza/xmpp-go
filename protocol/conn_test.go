@@ -22,6 +22,12 @@ const featuresTLS = `<stream:features>
   </starttls>
 </stream:features>`
 
+const featuresSASL = `<stream:features>
+  <mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>
+    <mechanism>PLAIN</mechanism>
+  </mechanisms>
+</stream:features>`
+
 func TestConnection_StreamOpenFlow(t *testing.T) {
 	j, err := jid.Parse("juliet@im.example.com")
 	if err != nil {
@@ -311,6 +317,163 @@ func TestConnection_StartTLSNotOffered(t *testing.T) {
 	_, _ = conn.Receive([]byte(`<stream:features><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></stream:features>`))
 
 	if err := conn.StartTLS(); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_SASLFailure(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j, Password: "x"})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{Mechanisms: []string{"PLAIN"}}
+	_ = conn.Authenticate("PLAIN")
+	_ = conn.BytesToSend()
+
+	events, err := conn.Receive([]byte(`<failure xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := events[0].(*SASLFailureEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+	if conn.State() != StateNegotiating {
+		t.Fatalf("state = %s", conn.State())
+	}
+}
+
+func TestConnection_AuthenticateAutoSelectDefault(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j, Password: "p"})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{Mechanisms: []string{"SCRAM-SHA-1", "PLAIN"}}
+	if err := conn.Authenticate(""); err != nil {
+		t.Fatal(err)
+	}
+	if conn.State() != StateAwaitSASLOutcome {
+		t.Fatalf("state = %s", conn.State())
+	}
+}
+
+func TestConnection_AuthenticateMechanismNotOffered(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j, Password: "p"})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{Mechanisms: []string{"PLAIN"}}
+	if err := conn.Authenticate("SCRAM-SHA-1"); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_AuthenticateAutoSelect(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j, Password: "p", SASLMechanisms: []string{"PLAIN"}})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{Mechanisms: []string{"SCRAM-SHA-1", "PLAIN"}}
+	if err := conn.Authenticate(""); err != nil {
+		t.Fatal(err)
+	}
+	if conn.State() != StateAwaitSASLOutcome {
+		t.Fatalf("state = %s", conn.State())
+	}
+}
+
+func TestConnection_SASLPLAINSuccess(t *testing.T) {
+	j, _ := jid.Parse("juliet@im.example.com")
+	conn := NewConnection(Config{
+		JID:      j,
+		Password: "r0m30myr0m30",
+	})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	_, _ = conn.Receive([]byte(featuresSASL))
+
+	if err := conn.Authenticate("PLAIN"); err != nil {
+		t.Fatal(err)
+	}
+	out := conn.BytesToSend()
+	if out == nil {
+		t.Fatal("expected auth element")
+	}
+
+	events, err := conn.Receive([]byte(`<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := events[0].(*SASLSuccessEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+	conn.ResetAfterSASL()
+	if conn.State() != StateInitial {
+		t.Fatalf("state = %s", conn.State())
+	}
+}
+
+func TestConnection_SASLResponseWrongState(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	if err := conn.SASLResponse([]byte("x")); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_SASLChallengeResponse(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{Mechanisms: []string{"SCRAM-SHA-1"}}
+
+	// SCRAM は内蔵 initial なし — 空 auth を送る用途は別途。challenge/response パスのみ検証
+	data, err := AuthElementBytes("SCRAM-SHA-1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.enqueue(data)
+	conn.state = StateAwaitSASLOutcome
+
+	events, err := conn.Receive([]byte(`<challenge xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>Y2hhbGw=</challenge>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch, ok := events[0].(*SASLChallengeEvent)
+	if !ok || ch.Payload != "Y2hhbGw=" {
+		t.Fatalf("challenge %+v", events[0])
+	}
+
+	if err := conn.SASLResponse([]byte("response")); err != nil {
+		t.Fatal(err)
+	}
+	if conn.BytesToSend() == nil {
+		t.Fatal("expected response")
+	}
+}
+
+func TestConnection_SASLChallengeWrongState(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	_, err := conn.Receive([]byte(`<challenge xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>eA==</challenge>`))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_SASLChallengeWrongNamespace(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateAwaitSASLOutcome
+	_, err := conn.Receive([]byte(`<challenge xmlns='urn:example'>eA==</challenge>`))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_SASLSuccessWrongState(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	_, err := conn.Receive([]byte(`<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>`))
+	if err == nil {
 		t.Fatal("expected error")
 	}
 }
