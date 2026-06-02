@@ -2,10 +2,9 @@
 
 - Priority: Medium
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-unavailable-presence
-- Polished:
 
 ## 目的
 
@@ -38,4 +37,4 @@ Medium — 0008 (available) の対。差分は小さく、graceful ログアウ�
 
 - `protocol/stanza.go`: `UnavailablePresenceOpts`, `UnavailablePresenceStanzaBytes`
 - `protocol/conn.go`: `SendUnavailablePresence`
-- `protocol/stanza_test.go` にテスト追加
+- `protocol/stanza_test.go` (RFC 6121 Example 15、directed、エスケープ、Connection 経由)
