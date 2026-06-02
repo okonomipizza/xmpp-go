@@ -2,10 +2,9 @@
 
 - Priority: High
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-inbound-iq-parse
-- Polished:
 
 ## 目的
 
@@ -36,6 +35,7 @@ High — message / presence と同様、stanza 受信の最後の未構造化部
 
 ## 解決方法
 
-- `protocol/iq.go`: `IQEvent`, `ParseInboundIQ`
-- `protocol/conn.go`: `handleIQ` の Ready / Closing 分岐
-- `protocol/iq_test.go`, `conn_test.go` 更新、`StanzaEvent` 削除
+- `protocol/iq.go`: `IQEvent`, `ParseInboundIQ`, `iqPayload` (`bytes.Clone`)
+- `protocol/conn.go`: `handleIQ` の Ready / Closing で `IQEvent` を返す
+- `protocol/event.go`: `StanzaEvent` 削除
+- `protocol/iq_test.go` (RFC 6121 Example 2 等), `conn_test.go` 更新
