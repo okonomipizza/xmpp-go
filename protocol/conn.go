@@ -393,7 +393,11 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 func (c *Connection) handleIQ(tok xmlstream.Token) (Event, error) {
 	if c.state != StateAwaitBind {
 		if c.state == StateReady || c.state == StateClosing {
-			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
+			ev, err := ParseInboundIQ(tok)
+			if err != nil {
+				return nil, err
+			}
+			return &ev, nil
 		}
 		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome {
 			return nil, nil

@@ -668,7 +668,7 @@ func TestConnection_BindWrongIQType(t *testing.T) {
 	}
 }
 
-func TestConnection_IQAsStanzaWhenReady(t *testing.T) {
+func TestConnection_IQAsIQEventWhenReady(t *testing.T) {
 	j, _ := jid.Parse("user@example.com")
 	conn := NewConnection(Config{JID: j})
 	conn.state = StateReady
@@ -676,8 +676,9 @@ func TestConnection_IQAsStanzaWhenReady(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := events[0].(*StanzaEvent); !ok {
-		t.Fatalf("got %T", events[0])
+	iq, ok := events[0].(*IQEvent)
+	if !ok || iq.ID != "x" || iq.Type != "get" {
+		t.Fatalf("got %T id=%q type=%q", events[0], iq.ID, iq.Type)
 	}
 }
 
@@ -837,8 +838,8 @@ func TestConnection_PresenceIQ(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st, ok := events[0].(*StanzaEvent)
-	if !ok || st.Name != "iq" {
+	iq, ok := events[0].(*IQEvent)
+	if !ok || iq.Type != "get" {
 		t.Fatalf("got %T", events[0])
 	}
 }

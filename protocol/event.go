@@ -80,15 +80,6 @@ type BindFailureEvent struct {
 
 func (*BindFailureEvent) isEvent() {}
 
-// StanzaEvent は <iq/> を受信したことを表す。
-// <message/> は MessageEvent、<presence/> は PresenceEvent を参照。
-type StanzaEvent struct {
-	Name  string // "iq"
-	Token xmlstream.Token
-}
-
-func (*StanzaEvent) isEvent() {}
-
 // ElementEvent は Ready 状態で受信した、stanza 以外のトップレベル要素を表す。
 type ElementEvent struct {
 	Name  string

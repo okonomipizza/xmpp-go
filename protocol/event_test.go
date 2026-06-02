@@ -14,7 +14,7 @@ func TestEventMarkers(t *testing.T) {
 	(&BindFailureEvent{}).isEvent()
 	(&MessageEvent{}).isEvent()
 	(&PresenceEvent{}).isEvent()
-	(&StanzaEvent{}).isEvent()
+	(&IQEvent{}).isEvent()
 	(&ElementEvent{}).isEvent()
 	(&StreamClosedEvent{}).isEvent()
 	(&StreamErrorEvent{}).isEvent()

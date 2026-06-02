@@ -2,6 +2,8 @@
 
 ## develop
 
+- [CHANGE] 受信 IQ の `StanzaEvent` を `IQEvent` に置き換える
+  - @okonomipizza
 - [ADD] 増分 XML パーサー `xmlstream` パッケージを追加する
   - @okonomipizza
 - [ADD] c2s 向け Sans I/O 状態機械 `protocol` パッケージを追加する
@@ -21,6 +23,8 @@
 - [ADD] 初期 presence 送信 (`SendAvailablePresence`, `AvailablePresenceStanzaBytes`) を `protocol` に追加する
   - @okonomipizza
 - [ADD] 受信 presence の構造化 (`PresenceEvent`, `ParseInboundPresence`) を `protocol` に追加する
+  - @okonomipizza
+- [ADD] 受信 IQ の構造化 (`IQEvent`, `ParseInboundIQ`) を `protocol` に追加する
   - @okonomipizza
 
 ### misc
