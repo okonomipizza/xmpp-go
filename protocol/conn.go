@@ -217,6 +217,15 @@ func (c *Connection) SendPresence(to jid.JID, id, typ string) error {
 	return c.sendStanza(data)
 }
 
+// SendAvailablePresence は RFC 6121 Section 4.2.1 の初期 presence を送信キューに載せる。
+func (c *Connection) SendAvailablePresence(opts AvailablePresenceOpts) error {
+	data, err := AvailablePresenceStanzaBytes(c.boundJID, opts)
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
 // SendIQ は <iq/> を送信キューに載せる。
 func (c *Connection) SendIQ(to jid.JID, id, typ string, inner []byte) error {
 	data, err := IQStanzaBytes(c.boundJID, to, id, typ, inner)

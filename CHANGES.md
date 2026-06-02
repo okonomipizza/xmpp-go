@@ -18,6 +18,8 @@
   - @okonomipizza
 - [ADD] 受信 message の構造化 (`MessageEvent`, `ParseInboundMessage`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] 初期 presence 送信 (`SendAvailablePresence`, `AvailablePresenceStanzaBytes`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

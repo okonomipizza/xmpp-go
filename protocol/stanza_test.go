@@ -278,6 +278,127 @@ func TestConnection_SendPresenceAndIQ(t *testing.T) {
 	}
 }
 
+func TestAvailablePresenceStanzaBytes_RFC6121Example3(t *testing.T) {
+	from, _ := jid.Parse("romeo@example.net/orchard")
+	data, err := AvailablePresenceStanzaBytes(from, AvailablePresenceOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(data)
+	if s != "<presence from='romeo@example.net/orchard'/>" {
+		t.Fatalf("stanza: %s", s)
+	}
+	if strings.Contains(s, " to=") || strings.Contains(s, "type=") {
+		t.Fatalf("must not have to or type: %s", s)
+	}
+}
+
+func TestAvailablePresenceStanzaBytes_RFC6121Example10(t *testing.T) {
+	from, _ := jid.Parse("romeo@example.net/orchard")
+	priority := 1
+	data, err := AvailablePresenceStanzaBytes(from, AvailablePresenceOpts{
+		Lang:     "en",
+		Show:     "away",
+		Status:   "I shall return!",
+		Priority: &priority,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(data)
+	for _, want := range []string{
+		"from='romeo@example.net/orchard'",
+		"xml:lang='en'",
+		"<show>away</show>",
+		"<status>I shall return!</status>",
+		"<priority>1</priority>",
+		"</presence>",
+	} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("missing %q in %s", want, s)
+		}
+	}
+	if strings.Contains(s, "type=") {
+		t.Fatal("must not have type")
+	}
+}
+
+func TestAvailablePresenceStanzaBytes_InvalidShow(t *testing.T) {
+	from, _ := jid.Parse("u@example.com/r")
+	_, err := AvailablePresenceStanzaBytes(from, AvailablePresenceOpts{Show: "busy"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestAvailablePresenceStanzaBytes_InvalidPriority(t *testing.T) {
+	from, _ := jid.Parse("u@example.com/r")
+	p := 200
+	_, err := AvailablePresenceStanzaBytes(from, AvailablePresenceOpts{Priority: &p})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestAvailablePresenceStanzaBytes_EscapeStatus(t *testing.T) {
+	from, _ := jid.Parse("u@example.com/r")
+	data, err := AvailablePresenceStanzaBytes(from, AvailablePresenceOpts{Status: "a & b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "<status>a &amp; b</status>") {
+		t.Fatalf("stanza: %s", data)
+	}
+}
+
+func TestAvailablePresenceStanzaBytes_StatusWithQuotes(t *testing.T) {
+	from, _ := jid.Parse("u@example.com/r")
+	data, err := AvailablePresenceStanzaBytes(from, AvailablePresenceOpts{
+		Status: `I'm away — "soon" <maybe>`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(data)
+	if !strings.Contains(s, "I'm away") || !strings.Contains(s, `"soon"`) || !strings.Contains(s, "&lt;maybe&gt;") {
+		t.Fatalf("stanza: %s", s)
+	}
+}
+
+func TestIQStanzaBytes_AmpersandInID(t *testing.T) {
+	from, _ := jid.Parse("u@example.com/r")
+	_, err := IQStanzaBytes(from, jid.JID{}, "a&b", "get", nil)
+	if err == nil {
+		t.Fatal("expected error for & in id")
+	}
+}
+
+func TestConnection_SendAvailablePresence(t *testing.T) {
+	j, _ := jid.Parse("romeo@example.net/orchard")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateReady
+	conn.boundJID = j
+	priority := 1
+	if err := conn.SendAvailablePresence(AvailablePresenceOpts{
+		Lang: "en", Show: "away", Status: "hi", Priority: &priority,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	data := conn.BytesToSend()
+	if data == nil || !strings.Contains(string(data), "<show>away</show>") {
+		t.Fatalf("data: %s", data)
+	}
+}
+
+func TestConnection_SendAvailablePresenceNotReady(t *testing.T) {
+	j, _ := jid.Parse("u@example.com/r")
+	conn := NewConnection(Config{JID: j})
+	conn.boundJID = j
+	if err := conn.SendAvailablePresence(AvailablePresenceOpts{}); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestConnection_SendMessageAfterBind(t *testing.T) {
 	j, _ := jid.Parse("u@example.com/r")
 	conn := NewConnection(Config{JID: j})
