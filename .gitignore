@@ -1,0 +1,35 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Vendor
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Nix
+result
+result-*
+.direnv/
+
+# Test artifacts
+coverage.out
+coverage.html
+*.prof
+
+# OS
+.DS_Store
+Thumbs.db
