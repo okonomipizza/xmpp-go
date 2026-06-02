@@ -6,6 +6,8 @@
   - @okonomipizza
 - [ADD] c2s 向け Sans I/O 状態機械 `protocol` パッケージを追加する
   - @okonomipizza
+- [ADD] STARTTLS 交渉 (`StartTLS`, `ResetAfterTLS`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

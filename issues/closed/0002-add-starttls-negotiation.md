@@ -2,6 +2,7 @@
 
 - Priority: High
 - Created: 2026-06-02
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-starttls-negotiation
 
@@ -32,4 +33,8 @@ TLS は SASL の前提であり、c2s 接続の必須ステップのため High�
 
 ## 解決方法
 
-(完了時に記載)
+- `protocol/features.go`: 直下子要素パースで STARTTLS 提供・必須を判定
+- `protocol/tls.go`: `StartTLS()`, `StartTLSCommandBytes()`
+- `protocol/conn.go`: `StateAwaitTLSProceed`、`StartTLSProceedEvent` / `StartTLSFailureEvent`、`ResetAfterTLS()`
+- `protocol/state_test.go`: `State.String()` の網羅
+- conformance / ユニットテスト (`tls_test.go`, `features_test.go`, `conn_test.go`)

@@ -205,6 +205,116 @@ func TestConnection_StreamRestartInNegotiating(t *testing.T) {
 	}
 }
 
+func TestConnection_Features(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	_, _ = conn.Receive([]byte(featuresTLS))
+
+	f := conn.Features()
+	if !f.StartTLSOffered || !f.StartTLSRequired {
+		t.Fatalf("features = %+v", f)
+	}
+}
+
+func TestConnection_StartTLSWrongState(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	if err := conn.StartTLS(); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_ProceedUnexpectedState(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	_, _ = conn.Receive([]byte(featuresTLS))
+
+	_, err := conn.Receive([]byte(`<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>`))
+	if err == nil {
+		t.Fatal("expected error without StartTLS")
+	}
+}
+
+func TestConnection_STARTTLSProceed(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	_, _ = conn.Receive([]byte(featuresTLS))
+
+	if err := conn.StartTLS(); err != nil {
+		t.Fatal(err)
+	}
+	if string(conn.BytesToSend()) != string(StartTLSCommandBytes()) {
+		t.Fatal("expected starttls command")
+	}
+	if conn.State() != StateAwaitTLSProceed {
+		t.Fatalf("state = %s", conn.State())
+	}
+
+	events, err := conn.Receive([]byte(`<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("events = %d", len(events))
+	}
+	if _, ok := events[0].(*StartTLSProceedEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+
+	conn.ResetAfterTLS()
+	if conn.State() != StateInitial {
+		t.Fatalf("state = %s", conn.State())
+	}
+	_ = conn.Start()
+	if conn.State() != StateAwaitServerStream {
+		t.Fatalf("state = %s", conn.State())
+	}
+}
+
+func TestConnection_STARTTLSFailure(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	_, _ = conn.Receive([]byte(featuresTLS))
+	_ = conn.StartTLS()
+	_ = conn.BytesToSend()
+
+	events, err := conn.Receive([]byte(`<failure xmlns='urn:ietf:params:xml:ns:xmpp-tls'/></stream:stream>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := events[0].(*StartTLSFailureEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+	if conn.State() != StateClosed {
+		t.Fatalf("state = %s", conn.State())
+	}
+}
+
+func TestConnection_StartTLSNotOffered(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	_ = conn.Start()
+	_ = conn.BytesToSend()
+	_, _ = conn.Receive([]byte(serverOpen))
+	_, _ = conn.Receive([]byte(`<stream:features><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></stream:features>`))
+
+	if err := conn.StartTLS(); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestConnection_NegotiatingElementIgnored(t *testing.T) {
 	j, _ := jid.Parse("user@example.com")
 	conn := NewConnection(Config{JID: j})
@@ -213,7 +323,7 @@ func TestConnection_NegotiatingElementIgnored(t *testing.T) {
 	_, _ = conn.Receive([]byte(serverOpen))
 	_, _ = conn.Receive([]byte(featuresTLS))
 
-	events, err := conn.Receive([]byte(`<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>`))
+	events, err := conn.Receive([]byte(`<bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/>`))
 	if err != nil {
 		t.Fatal(err)
 	}

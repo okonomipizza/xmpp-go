@@ -14,6 +14,8 @@ const (
 	StateAwaitFeatures
 	// StateNegotiating はストリーム機能の交渉中 (TLS, SASL など)。
 	StateNegotiating
+	// StateAwaitTLSProceed は <proceed/> または <failure/> 待ち。
+	StateAwaitTLSProceed
 	// StateReady は stanza の送受信が可能な状態。
 	StateReady
 	// StateClosed はストリームが閉じられた状態。
@@ -31,6 +33,8 @@ func (s State) String() string {
 		return "AwaitFeatures"
 	case StateNegotiating:
 		return "Negotiating"
+	case StateAwaitTLSProceed:
+		return "AwaitTLSProceed"
 	case StateReady:
 		return "Ready"
 	case StateClosed:

@@ -28,6 +28,19 @@ type StreamFeaturesEvent struct {
 
 func (*StreamFeaturesEvent) isEvent() {}
 
+// StartTLSProceedEvent は <proceed/> を受信し TLS ハンドシェイ可能なことを表す。
+// 呼び出し側が transport で TLS を完了したら ResetAfterTLS() の後に Start() すること。
+type StartTLSProceedEvent struct{}
+
+func (*StartTLSProceedEvent) isEvent() {}
+
+// StartTLSFailureEvent は STARTTLS の <failure/> を受信したことを表す。
+type StartTLSFailureEvent struct {
+	Token xmlstream.Token
+}
+
+func (*StartTLSFailureEvent) isEvent() {}
+
 // StanzaEvent は <message/>, <presence/>, <iq/> のいずれかを受信したことを表す。
 type StanzaEvent struct {
 	Name  string // "message", "presence", "iq"

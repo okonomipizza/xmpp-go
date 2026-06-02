@@ -11,10 +11,11 @@ import (
 
 // Connection はクライアント側 XMPP ストリームの状態機械である。
 type Connection struct {
-	cfg    Config
-	state  State
-	parser *xmlstream.Parser
-	out    [][]byte
+	cfg      Config
+	state    State
+	parser   *xmlstream.Parser
+	out      [][]byte
+	features StreamFeatures
 }
 
 // NewConnection は初期状態の接続を返す。
@@ -77,6 +78,32 @@ func (c *Connection) Receive(data []byte) ([]Event, error) {
 	}
 }
 
+// Features は直近で受信した <stream:features/> の解析結果を返す。
+func (c *Connection) Features() StreamFeatures {
+	return c.features
+}
+
+// StartTLS は STARTTLS コマンドを送信キューに載せる (RFC 6120 Section 5.4.2.1)。
+func (c *Connection) StartTLS() error {
+	if c.state != StateNegotiating {
+		return fmt.Errorf("protocol: StartTLS in state %s", c.state)
+	}
+	if !c.features.StartTLSOffered {
+		return errors.New("protocol: STARTTLS not offered")
+	}
+	c.enqueue(StartTLSCommandBytes())
+	c.state = StateAwaitTLSProceed
+	return nil
+}
+
+// ResetAfterTLS は TLS 確立後に XML ストリーム状態をリセットする (Section 5.3.2)。
+// 呼び出し側が transport で TLS を完了した後に呼び、続けて Start() すること。
+func (c *Connection) ResetAfterTLS() {
+	c.parser.Reset()
+	c.features = StreamFeatures{}
+	c.state = StateInitial
+}
+
 // BytesToSend は送信キュー先頭のバイト列を取り出す。なければ nil。
 func (c *Connection) BytesToSend() []byte {
 	if len(c.out) == 0 {
@@ -137,6 +164,7 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 		switch c.state {
 		case StateAwaitFeatures, StateNegotiating:
 			c.state = StateNegotiating
+			c.features = ParseStreamFeatures(tok)
 			return &StreamFeaturesEvent{Token: tok}, nil
 		default:
 			return nil, fmt.Errorf("protocol: unexpected stream:features in state %s", c.state)
@@ -144,12 +172,25 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 	case "stream:error":
 		c.state = StateClosed
 		return &StreamErrorEvent{Token: tok}, nil
+	case "proceed":
+		if c.state == StateAwaitTLSProceed && elementTLSNamespace(tok) {
+			return &StartTLSProceedEvent{}, nil
+		}
+		return nil, fmt.Errorf("protocol: unexpected proceed in state %s", c.state)
+	case "failure":
+		if c.state == StateAwaitTLSProceed && elementTLSNamespace(tok) {
+			c.state = StateClosed
+			return &StartTLSFailureEvent{Token: tok}, nil
+		}
+		if c.state == StateNegotiating {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("protocol: unexpected failure in state %s", c.state)
 	case "message", "presence", "iq":
 		if c.state == StateReady {
 			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
 		}
 		if c.state == StateNegotiating {
-			// TLS / SASL などの交渉要素は後続で個別イベント化する
 			return nil, nil
 		}
 		return nil, fmt.Errorf("protocol: unexpected stanza %q in state %s", tok.Name, c.state)
