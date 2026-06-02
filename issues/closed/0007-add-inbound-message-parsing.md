@@ -2,10 +2,9 @@
 
 - Priority: High
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-inbound-message-parse
-- Polished:
 
 ## 目的
 
@@ -36,7 +35,7 @@ High — outbound stanza (0005) と対になり、IM クライアントの最小
 
 ## 解決方法
 
-- `protocol/message.go`: `ParseInboundMessage`, body 抽出
-- `protocol/event.go`: `MessageEvent`
-- `protocol/conn.go`: message 分岐で `MessageEvent` を返す
-- `protocol/message_test.go`, `conn_test.go` 更新
+- `protocol/message.go`: `MessageEvent`, `ParseInboundMessage`, `messageBody`
+- `protocol/xmltext.go`: `unescapeXMLText` (body の `&amp;` 等を復元し送信側とラウンドトリップ)
+- `protocol/conn.go`: message 受信で `MessageEvent` を返す
+- `protocol/message_test.go`, `protocol/xmltext_test.go`, `conn_test.go` 更新
