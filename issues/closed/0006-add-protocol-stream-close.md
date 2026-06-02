@@ -2,10 +2,9 @@
 
 - Priority: High
 - Created: 2026-06-02
-- Completed:
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-stream-close
-- Polished:
 
 ## 目的
 
@@ -38,7 +37,7 @@ High — 実クライアントではログアウト・切断時に必須。差�
 
 ## 解決方法
 
-- `protocol/stream.go` に `StreamCloseBytes` を追加
-- `protocol/state.go` に `StateClosing` を追加
-- `protocol/conn.go` に `Close()` を追加し、`Receive` / `dispatch` を調整
-- `protocol/conn_test.go` 等にユニットテストを追加
+- `protocol/stream.go`: `StreamCloseBytes`
+- `protocol/state.go`: `StateClosing`
+- `protocol/conn.go`: `Close()`。`StateClosing` 中は inbound stanza を `StanzaEvent` として処理 (RFC 6120 Section 4.4)
+- `protocol/conn_test.go`, `protocol/stream_test.go`, `protocol/state_test.go`, `protocol/pbt_test.go`
