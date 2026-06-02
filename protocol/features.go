@@ -176,6 +176,61 @@ func findOpenTagEnd(buf []byte, start int) (end int, selfClosing bool, ok bool) 
 	return 0, false, false
 }
 
+// elementAttrValue は要素 raw の開始タグから属性値を返す。見つからなければ空文字列。
+func elementAttrValue(elemRaw []byte, attrName string) string {
+	openEnd, _, ok := findOpenTagEnd(elemRaw, 0)
+	if !ok || openEnd < 1 {
+		return ""
+	}
+	tag := elemRaw[1:openEnd]
+	i := 0
+	for i < len(tag) && tag[i] != ' ' && tag[i] != '\t' && tag[i] != '\n' && tag[i] != '\r' && tag[i] != '/' {
+		i++
+	}
+	for i < len(tag) {
+		for i < len(tag) && (tag[i] == ' ' || tag[i] == '\t' || tag[i] == '\n' || tag[i] == '\r') {
+			i++
+		}
+		if i >= len(tag) {
+			break
+		}
+		nameStart := i
+		for i < len(tag) && tag[i] != '=' && tag[i] != ' ' && tag[i] != '\t' && tag[i] != '\n' && tag[i] != '\r' {
+			i++
+		}
+		name := string(tag[nameStart:i])
+		for i < len(tag) && (tag[i] == ' ' || tag[i] == '\t' || tag[i] == '\n' || tag[i] == '\r') {
+			i++
+		}
+		if i >= len(tag) || tag[i] != '=' {
+			break
+		}
+		i++
+		for i < len(tag) && (tag[i] == ' ' || tag[i] == '\t' || tag[i] == '\n' || tag[i] == '\r') {
+			i++
+		}
+		if i >= len(tag) {
+			break
+		}
+		quote := tag[i]
+		if quote != '\'' && quote != '"' {
+			break
+		}
+		i++
+		valStart := i
+		for i < len(tag) && tag[i] != quote {
+			i++
+		}
+		if name == attrName {
+			return string(tag[valStart:i])
+		}
+		if i < len(tag) {
+			i++
+		}
+	}
+	return ""
+}
+
 func openTagLocalName(openTag []byte) string {
 	if len(openTag) < 2 || openTag[0] != '<' {
 		return ""

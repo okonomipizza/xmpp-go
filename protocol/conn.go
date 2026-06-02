@@ -236,6 +236,15 @@ func (c *Connection) SendUnavailablePresence(to jid.JID, opts UnavailablePresenc
 	return c.sendStanza(data)
 }
 
+// SendRosterGet は RFC 6121 Example 1 の roster get IQ を送信キューに載せる。
+func (c *Connection) SendRosterGet(id string) error {
+	data, err := RosterIQGetBytes(c.boundJID, id)
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
 // SendIQ は <iq/> を送信キューに載せる。
 func (c *Connection) SendIQ(to jid.JID, id, typ string, inner []byte) error {
 	data, err := IQStanzaBytes(c.boundJID, to, id, typ, inner)

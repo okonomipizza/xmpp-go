@@ -28,6 +28,8 @@
   - @okonomipizza
 - [ADD] unavailable presence 送信 (`SendUnavailablePresence`, `UnavailablePresenceStanzaBytes`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] roster get 送信と受信パース (`SendRosterGet`, `ParseRosterItems`, `RosterItem`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 
