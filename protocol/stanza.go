@@ -18,6 +18,12 @@ type AvailablePresenceOpts struct {
 	Priority *int
 }
 
+// UnavailablePresenceOpts は RFC 6121 Example 15 の unavailable presence 用オプション。
+type UnavailablePresenceOpts struct {
+	Lang   string
+	Status string
+}
+
 // MessageStanzaBytes は RFC 6121 Section 5.2.1 形式の <message/> を返す。
 func MessageStanzaBytes(from, to jid.JID, id, typ, lang, body string) ([]byte, error) {
 	if err := validateStanzaFrom(from); err != nil {
@@ -110,6 +116,30 @@ func AvailablePresenceStanzaBytes(from jid.JID, opts AvailablePresenceOpts) ([]b
 		return []byte(open + "/>"), nil
 	}
 	return []byte(open + ">" + strings.Join(children, "") + "</presence>"), nil
+}
+
+// UnavailablePresenceStanzaBytes は type='unavailable' の presence を返す。to が empty なら broadcast。
+func UnavailablePresenceStanzaBytes(from, to jid.JID, opts UnavailablePresenceOpts) ([]byte, error) {
+	if err := validateStanzaFrom(from); err != nil {
+		return nil, err
+	}
+	if opts.Lang != "" {
+		if err := validateXMLLang(opts.Lang); err != nil {
+			return nil, err
+		}
+	}
+	open := "<presence from='" + from.String() + "'"
+	if !to.IsEmpty() {
+		open += " to='" + to.String() + "'"
+	}
+	open += " type='unavailable'"
+	if opts.Lang != "" {
+		open += " xml:lang='" + opts.Lang + "'"
+	}
+	if opts.Status == "" {
+		return []byte(open + "/>"), nil
+	}
+	return []byte(open + "><status>" + escapeXMLText(opts.Status) + "</status></presence>"), nil
 }
 
 // IQStanzaBytes は <iq/> を返す。inner は子要素の生 XML (検証は呼び出し側の責務)。

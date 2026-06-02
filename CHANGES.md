@@ -26,6 +26,8 @@
   - @okonomipizza
 - [ADD] 受信 IQ の構造化 (`IQEvent`, `ParseInboundIQ`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] unavailable presence 送信 (`SendUnavailablePresence`, `UnavailablePresenceStanzaBytes`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

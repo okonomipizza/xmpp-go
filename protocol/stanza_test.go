@@ -390,6 +390,79 @@ func TestConnection_SendAvailablePresence(t *testing.T) {
 	}
 }
 
+func TestUnavailablePresenceStanzaBytes_RFC6121Example15(t *testing.T) {
+	from, _ := jid.Parse("romeo@example.net/orchard")
+	data, err := UnavailablePresenceStanzaBytes(from, jid.JID{}, UnavailablePresenceOpts{
+		Lang: "en", Status: "gone home",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(data)
+	for _, want := range []string{
+		"from='romeo@example.net/orchard'",
+		"type='unavailable'",
+		"xml:lang='en'",
+		"<status>gone home</status>",
+	} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("missing %q in %s", want, s)
+		}
+	}
+	if strings.Contains(s, " to=") {
+		t.Fatal("broadcast must not have to")
+	}
+}
+
+func TestUnavailablePresenceStanzaBytes_Directed(t *testing.T) {
+	from, _ := jid.Parse("romeo@example.net/orchard")
+	to, _ := jid.Parse("juliet@example.com")
+	data, err := UnavailablePresenceStanzaBytes(from, to, UnavailablePresenceOpts{Status: "bye"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(data)
+	if !strings.Contains(s, "to='juliet@example.com'") || !strings.Contains(s, "<status>bye</status>") {
+		t.Fatalf("stanza: %s", s)
+	}
+}
+
+func TestUnavailablePresenceStanzaBytes_EmptyStatus(t *testing.T) {
+	from, _ := jid.Parse("u@example.com/r")
+	data, err := UnavailablePresenceStanzaBytes(from, jid.JID{}, UnavailablePresenceOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "<presence from='u@example.com/r' type='unavailable'/>" {
+		t.Fatalf("stanza: %s", data)
+	}
+}
+
+func TestUnavailablePresenceStanzaBytes_EscapeStatus(t *testing.T) {
+	from, _ := jid.Parse("u@example.com/r")
+	data, err := UnavailablePresenceStanzaBytes(from, jid.JID{}, UnavailablePresenceOpts{Status: "a & b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "<status>a &amp; b</status>") {
+		t.Fatalf("stanza: %s", data)
+	}
+}
+
+func TestConnection_SendUnavailablePresence(t *testing.T) {
+	j, _ := jid.Parse("romeo@example.net/orchard")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateReady
+	conn.boundJID = j
+	if err := conn.SendUnavailablePresence(jid.JID{}, UnavailablePresenceOpts{Status: "gone"}); err != nil {
+		t.Fatal(err)
+	}
+	data := conn.BytesToSend()
+	if data == nil || !strings.Contains(string(data), "type='unavailable'") {
+		t.Fatalf("data: %s", data)
+	}
+}
+
 func TestConnection_SendAvailablePresenceNotReady(t *testing.T) {
 	j, _ := jid.Parse("u@example.com/r")
 	conn := NewConnection(Config{JID: j})

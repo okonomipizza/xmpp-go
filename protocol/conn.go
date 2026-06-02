@@ -226,6 +226,16 @@ func (c *Connection) SendAvailablePresence(opts AvailablePresenceOpts) error {
 	return c.sendStanza(data)
 }
 
+// SendUnavailablePresence は RFC 6121 Example 15 の unavailable presence を送信キューに載せる。
+// to が empty なら broadcast。通常は Close の前に送る。
+func (c *Connection) SendUnavailablePresence(to jid.JID, opts UnavailablePresenceOpts) error {
+	data, err := UnavailablePresenceStanzaBytes(c.boundJID, to, opts)
+	if err != nil {
+		return err
+	}
+	return c.sendStanza(data)
+}
+
 // SendIQ は <iq/> を送信キューに載せる。
 func (c *Connection) SendIQ(to jid.JID, id, typ string, inner []byte) error {
 	data, err := IQStanzaBytes(c.boundJID, to, id, typ, inner)
