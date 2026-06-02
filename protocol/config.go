@@ -10,6 +10,9 @@ type Config struct {
 	// Lang はストリームのデフォルト言語 (xml:lang)。空なら "en"。
 	Lang string
 
+	// Resource は bind 時に送る resourcepart。空ならサーバー生成 (RFC 6120 Section 7.6.1)。
+	Resource string
+
 	// Password は SASL PLAIN 用パスワード。
 	Password string
 

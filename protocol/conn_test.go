@@ -478,6 +478,139 @@ func TestConnection_SASLSuccessWrongState(t *testing.T) {
 	}
 }
 
+func TestConnection_BindServerGenerated(t *testing.T) {
+	j, _ := jid.Parse("juliet@im.example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{BindOffered: true}
+
+	if err := conn.Bind(); err != nil {
+		t.Fatal(err)
+	}
+	if conn.State() != StateAwaitBind {
+		t.Fatalf("state = %s", conn.State())
+	}
+	out := string(conn.BytesToSend())
+	if !contains(out, "bind1") || !contains(out, "type='set'") {
+		t.Fatalf("out = %s", out)
+	}
+
+	const result = `<iq id='bind1' type='result'>
+  <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>
+    <jid>juliet@im.example.com/4db06f06-1ea4-11dc-aca3-000bcd821bfb</jid>
+  </bind>
+</iq>`
+	events, err := conn.Receive([]byte(result))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ev, ok := events[0].(*BindSuccessEvent)
+	if !ok || ev.JID.Resource() != "4db06f06-1ea4-11dc-aca3-000bcd821bfb" {
+		t.Fatalf("event = %+v", events[0])
+	}
+	if conn.State() != StateReady || conn.BoundJID().Resource() == "" {
+		t.Fatalf("state = %s bound = %s", conn.State(), conn.BoundJID())
+	}
+}
+
+func TestConnection_BindClientResource(t *testing.T) {
+	j, _ := jid.Parse("juliet@im.example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{BindOffered: true}
+
+	if err := conn.BindResource("balcony"); err != nil {
+		t.Fatal(err)
+	}
+	_ = conn.BytesToSend()
+
+	events, err := conn.Receive([]byte(`<iq id='bind1' type='result'>
+  <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>
+    <jid>juliet@im.example.com/balcony</jid>
+  </bind>
+</iq>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := events[0].(*BindSuccessEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+}
+
+func TestConnection_BindFailure(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{BindOffered: true}
+	_ = conn.Bind()
+	_ = conn.BytesToSend()
+
+	events, err := conn.Receive([]byte(`<iq id='bind1' type='error'>
+  <error type='cancel'><not-allowed xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/></error>
+</iq>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := events[0].(*BindFailureEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+	if conn.State() != StateNegotiating {
+		t.Fatalf("state = %s", conn.State())
+	}
+}
+
+func TestConnection_BindNotOffered(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	if err := conn.Bind(); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_BindWrongIQType(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{BindOffered: true}
+	_ = conn.Bind()
+	_ = conn.BytesToSend()
+
+	_, err := conn.Receive([]byte(`<iq id='bind1' type='set'/>`))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestConnection_IQAsStanzaWhenReady(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateReady
+	events, err := conn.Receive([]byte(`<iq id='x' type='get'/>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := events[0].(*StanzaEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+}
+
+func TestConnection_BindWrongIQID(t *testing.T) {
+	j, _ := jid.Parse("user@example.com")
+	conn := NewConnection(Config{JID: j})
+	conn.state = StateNegotiating
+	conn.features = StreamFeatures{BindOffered: true}
+	_ = conn.Bind()
+	_ = conn.BytesToSend()
+
+	_, err := conn.Receive([]byte(`<iq id='other' type='result'>
+  <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><jid>u@example.com/r</jid></bind>
+</iq>`))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestConnection_NegotiatingElementIgnored(t *testing.T) {
 	j, _ := jid.Parse("user@example.com")
 	conn := NewConnection(Config{JID: j})

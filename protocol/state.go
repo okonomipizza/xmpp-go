@@ -18,6 +18,8 @@ const (
 	StateAwaitTLSProceed
 	// StateAwaitSASLOutcome は <challenge/>, <success/>, <failure/> 待ち。
 	StateAwaitSASLOutcome
+	// StateAwaitBind は bind IQ の result / error 待ち。
+	StateAwaitBind
 	// StateReady は stanza の送受信が可能な状態。
 	StateReady
 	// StateClosed はストリームが閉じられた状態。
@@ -39,6 +41,8 @@ func (s State) String() string {
 		return "AwaitTLSProceed"
 	case StateAwaitSASLOutcome:
 		return "AwaitSASLOutcome"
+	case StateAwaitBind:
+		return "AwaitBind"
 	case StateReady:
 		return "Ready"
 	case StateClosed:

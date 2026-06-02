@@ -13,6 +13,7 @@ func TestState_String(t *testing.T) {
 		{StateNegotiating, "Negotiating"},
 		{StateAwaitTLSProceed, "AwaitTLSProceed"},
 		{StateAwaitSASLOutcome, "AwaitSASLOutcome"},
+		{StateAwaitBind, "AwaitBind"},
 		{StateReady, "Ready"},
 		{StateClosed, "Closed"},
 		{State(99), "State(99)"},

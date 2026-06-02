@@ -2,6 +2,7 @@
 
 - Priority: High
 - Created: 2026-06-02
+- Completed: 2026-06-02
 - Model: Composer 2.5
 - Branch: feature/add-resource-binding
 
@@ -32,4 +33,7 @@ resource binding 完了まで stanza を送れない。手動 `SetReady()` は�
 
 ## 解決方法
 
-(完了時に記載)
+- `protocol/bind.go`: `BindIQSetBytes`, `parseBindResultJID`
+- `protocol/conn.go`: `Bind`, `BindResource`, `BoundJID`, `StateAwaitBind`, `handleIQ`, bind イベント
+- `protocol/config.go`: `Resource`
+- `protocol/bind_test.go`, `conn_test.go` の RFC conformance テスト

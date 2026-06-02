@@ -10,6 +10,8 @@
   - @okonomipizza
 - [ADD] SASL PLAIN 認証と challenge/response パスを `protocol` に追加する
   - @okonomipizza
+- [ADD] resource binding (`Bind`, `BindResource`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

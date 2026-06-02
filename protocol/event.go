@@ -65,6 +65,21 @@ type SASLFailureEvent struct {
 
 func (*SASLFailureEvent) isEvent() {}
 
+// BindSuccessEvent は bind IQ result を受信したことを表す。
+type BindSuccessEvent struct {
+	JID   jid.JID
+	Token xmlstream.Token
+}
+
+func (*BindSuccessEvent) isEvent() {}
+
+// BindFailureEvent は bind IQ error を受信したことを表す。
+type BindFailureEvent struct {
+	Token xmlstream.Token
+}
+
+func (*BindFailureEvent) isEvent() {}
+
 // StanzaEvent は <message/>, <presence/>, <iq/> のいずれかを受信したことを表す。
 type StanzaEvent struct {
 	Name  string // "message", "presence", "iq"

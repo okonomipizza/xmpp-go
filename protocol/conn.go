@@ -5,17 +5,22 @@ package protocol
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
+	"github.com/okonomipizza/xmpp-go/jid"
 	"github.com/okonomipizza/xmpp-go/xmlstream"
 )
 
 // Connection はクライアント側 XMPP ストリームの状態機械である。
 type Connection struct {
-	cfg      Config
-	state    State
-	parser   *xmlstream.Parser
-	out      [][]byte
-	features StreamFeatures
+	cfg           Config
+	state         State
+	parser        *xmlstream.Parser
+	out           [][]byte
+	features      StreamFeatures
+	pendingBindID string
+	boundJID      jid.JID
+	bindIQCounter uint64
 }
 
 // NewConnection は初期状態の接続を返す。
@@ -149,7 +154,38 @@ func (c *Connection) SASLResponse(payload []byte) error {
 func (c *Connection) ResetAfterSASL() {
 	c.parser.Reset()
 	c.features = StreamFeatures{}
+	c.pendingBindID = ""
 	c.state = StateInitial
+}
+
+// BoundJID は bind 成功後の full JID を返す。未 bind なら empty。
+func (c *Connection) BoundJID() jid.JID {
+	return c.boundJID
+}
+
+// Bind は Config.Resource で resource binding IQ を送信キューに載せる (RFC 6120 Section 7)。
+func (c *Connection) Bind() error {
+	return c.BindResource(c.cfg.Resource)
+}
+
+// BindResource は指定 resourcepart で bind IQ を送信キューに載せる。空ならサーバー生成。
+func (c *Connection) BindResource(resource string) error {
+	if c.state != StateNegotiating {
+		return fmt.Errorf("protocol: Bind in state %s", c.state)
+	}
+	if !c.features.BindOffered {
+		return errors.New("protocol: resource binding not offered")
+	}
+	c.bindIQCounter++
+	id := "bind" + strconv.FormatUint(c.bindIQCounter, 10)
+	data, err := BindIQSetBytes(id, resource)
+	if err != nil {
+		return err
+	}
+	c.enqueue(data)
+	c.pendingBindID = id
+	c.state = StateAwaitBind
+	return nil
 }
 
 // BytesToSend は送信キュー先頭のバイト列を取り出す。なければ nil。
@@ -254,11 +290,13 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 			}, nil
 		}
 		return nil, fmt.Errorf("protocol: unexpected success in state %s", c.state)
-	case "message", "presence", "iq":
+	case "iq":
+		return c.handleIQ(tok)
+	case "message", "presence":
 		if c.state == StateReady {
 			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
 		}
-		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome {
+		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome || c.state == StateAwaitBind {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("protocol: unexpected stanza %q in state %s", tok.Name, c.state)
@@ -273,7 +311,40 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 	}
 }
 
+func (c *Connection) handleIQ(tok xmlstream.Token) (Event, error) {
+	if c.state != StateAwaitBind {
+		if c.state == StateReady {
+			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
+		}
+		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("protocol: unexpected iq in state %s", c.state)
+	}
+	if tok.AttrValue("id") != c.pendingBindID {
+		return nil, fmt.Errorf("protocol: unexpected bind iq id %q", tok.AttrValue("id"))
+	}
+	switch tok.AttrValue("type") {
+	case "result":
+		j, err := parseBindResultJID(tok.Raw)
+		if err != nil {
+			return nil, err
+		}
+		c.boundJID = j
+		c.pendingBindID = ""
+		c.state = StateReady
+		return &BindSuccessEvent{JID: j, Token: tok}, nil
+	case "error":
+		c.pendingBindID = ""
+		c.state = StateNegotiating
+		return &BindFailureEvent{Token: tok}, nil
+	default:
+		return nil, fmt.Errorf("protocol: unexpected bind iq type %q", tok.AttrValue("type"))
+	}
+}
+
 // SetReady はストリーム交渉完了後に呼び出し、stanza の送受信を有効にする。
+// bind を使わないテスト用。本番フローでは Bind() 成功後に StateReady になる。
 func (c *Connection) SetReady() {
 	if c.state == StateNegotiating || c.state == StateAwaitFeatures {
 		c.state = StateReady
