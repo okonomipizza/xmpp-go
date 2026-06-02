@@ -20,6 +20,8 @@
   - @okonomipizza
 - [ADD] 初期 presence 送信 (`SendAvailablePresence`, `AvailablePresenceStanzaBytes`) を `protocol` に追加する
   - @okonomipizza
+- [ADD] 受信 presence の構造化 (`PresenceEvent`, `ParseInboundPresence`) を `protocol` に追加する
+  - @okonomipizza
 
 ### misc
 

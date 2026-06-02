@@ -825,14 +825,20 @@ func TestConnection_PresenceIQ(t *testing.T) {
 	_, _ = conn.Receive([]byte(`<stream:features/>`))
 	conn.SetReady()
 
-	for _, name := range []string{"presence", "iq"} {
-		events, err := conn.Receive([]byte("<" + name + "/>"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		st, ok := events[0].(*StanzaEvent)
-		if !ok || st.Name != name {
-			t.Fatalf("name = %q", st.Name)
-		}
+	events, err := conn.Receive([]byte(`<presence from='a@example.com' type='probe'/>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := events[0].(*PresenceEvent); !ok {
+		t.Fatalf("got %T", events[0])
+	}
+
+	events, err = conn.Receive([]byte(`<iq id='q1' type='get'/>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, ok := events[0].(*StanzaEvent)
+	if !ok || st.Name != "iq" {
+		t.Fatalf("got %T", events[0])
 	}
 }

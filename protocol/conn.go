@@ -369,7 +369,11 @@ func (c *Connection) handleElement(tok xmlstream.Token) (Event, error) {
 		return nil, fmt.Errorf("protocol: unexpected stanza %q in state %s", tok.Name, c.state)
 	case "presence":
 		if c.state == StateReady || c.state == StateClosing {
-			return &StanzaEvent{Name: tok.Name, Token: tok}, nil
+			ev, err := ParseInboundPresence(tok)
+			if err != nil {
+				return nil, err
+			}
+			return &ev, nil
 		}
 		if c.state == StateNegotiating || c.state == StateAwaitSASLOutcome || c.state == StateAwaitBind {
 			return nil, nil
